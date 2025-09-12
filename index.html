@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Binance Spot Trades</title>
+    <style>
+      body { font-family: -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 24px; }
+      .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+      input, button { padding: 8px; font-size: 14px; }
+      table { border-collapse: collapse; width: 100%; margin-top: 16px; }
+      th, td { border: 1px solid #ddd; padding: 8px; font-size: 12px; }
+      th { background: #f5f5f5; position: sticky; top: 0; }
+      .note { color: #666; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <h2>Binance Spot Trades</h2>
+    <div class="row">
+      <input id="base" placeholder="Base (e.g., ARB) → expands to ARBUSDT, ARBUSDC, ..." style="min-width: 320px;" />
+      <input id="symbols" placeholder="Or symbols: BTCUSDT,ETHUSDT (comma-separated)" style="min-width: 320px;" />
+      <input id="start" placeholder="Start (yyyy-mm-dd or ISO8601)" />
+      <input id="end" placeholder="End (optional)" />
+      <input id="limit" type="number" min="1" max="1000" value="1000" />
+      <label><input id="infer" type="checkbox" /> infer</label>
+      <button onclick="fetchTrades()">Fetch</button>
+    </div>
+    <div class="row">
+      <input id="apiBase" placeholder="API base (default: this origin) e.g., https://your-app.vercel.app" style="min-width: 420px;" />
+      <input id="bypass" placeholder="Optional: Vercel protection bypass token" style="min-width: 420px;" />
+      <input id="apiToken" placeholder="Optional: API access token (x-access-token)" style="min-width: 360px;" />
+    </div>
+    <div class="note">The API key/secret are set as environment variables on the server (Vercel). Do not embed secrets in the client.</div>
+    <div id="status"></div>
+    <table id="tbl" style="display:none">
+      <thead>
+        <tr>
+          <th>symbol</th>
+          <th>time</th>
+          <th>price</th>
+          <th>qty</th>
+          <th>quoteQty</th>
+          <th>commission</th>
+          <th>commissionAsset</th>
+          <th>isBuyer</th>
+          <th>isMaker</th>
+          <th>orderId</th>
+          <th>id</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <script>
+      async function fetchTrades() {
+        const status = document.getElementById('status');
+        const tbl = document.getElementById('tbl');
+        const tbody = tbl.querySelector('tbody');
+        status.textContent = 'Loading...';
+        tbl.style.display = 'none';
+        tbody.innerHTML = '';
+
+        const params = new URLSearchParams();
+        const base = document.getElementById('base').value.trim();
+        const symbols = document.getElementById('symbols').value.trim();
+        const start = document.getElementById('start').value.trim();
+        const end = document.getElementById('end').value.trim();
+        const limit = document.getElementById('limit').value;
+        const infer = document.getElementById('infer').checked;
+        const bypass = document.getElementById('bypass').value.trim();
+
+        if (base) {
+          params.set('base', base);
+        } else if (symbols) {
+          params.set('symbols', symbols);
+        }
+        if (infer && !symbols && !base) params.set('infer', 'true');
+        if (start) params.set('start', start);
+        if (end) params.set('end', end);
+        if (limit) params.set('limit', limit);
+        if (bypass) {
+          params.set('x-vercel-set-bypass-cookie', 'true');
+          params.set('x-vercel-protection-bypass', bypass);
+        }
+
+        try {
+          const apiBase = document.getElementById('apiBase').value.trim() || window.location.origin;
+          const baseUrl = apiBase.replace(/\/$/, '');
+          const url = `${baseUrl}/api/trades?${params.toString()}`;
+
+          const headers = { };
+          const apiToken = document.getElementById('apiToken').value.trim();
+          if (apiToken) headers['x-access-token'] = apiToken;
+
+          const res = await fetch(url, { credentials: 'omit', headers });
+          const text = await res.text();
+          if (!res.ok) {
+            try {
+              const err = JSON.parse(text);
+              throw new Error(err.detail || res.statusText);
+            } catch (_) {
+              throw new Error(res.status + ' ' + res.statusText + (text ? ` - ${text.slice(0, 200)}` : ''));
+            }
+          }
+          let data;
+          try { data = JSON.parse(text); } catch { throw new Error('Load failed: non-JSON response'); }
+          status.textContent = `Got ${data.count} trades across ${data.symbols.length} symbols`;
+          if (Array.isArray(data.trades) && data.trades.length) {
+            for (const t of data.trades) {
+              const tr = document.createElement('tr');
+              const timeIso = t.time ? new Date(t.time).toISOString() : '';
+              const cells = [
+                t.symbol, timeIso, t.price, t.qty, t.quoteQty, t.commission,
+                t.commissionAsset, t.isBuyer, t.isMaker, t.orderId, t.id
+              ];
+              for (const c of cells) {
+                const td = document.createElement('td');
+                td.textContent = c ?? '';
+                tr.appendChild(td);
+              }
+              tbody.appendChild(tr);
+            }
+            tbl.style.display = '';
+          }
+        } catch (e) {
+          status.textContent = 'Error: ' + e.message;
+        }
+      }
+    </script>
+  </body>
+  </html>
+
+

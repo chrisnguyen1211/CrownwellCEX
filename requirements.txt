@@ -1,0 +1,5 @@
+python-binance==1.0.19
+streamlit==1.37.1
+pandas==2.2.2
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
