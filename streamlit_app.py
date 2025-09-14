@@ -66,7 +66,7 @@ except Exception:
         return results
 
 
-st.set_page_config(page_title="Crownwell CEX Tracking", layout="wide", page_icon="/Users/nguyenhuycuong/Downloads/crownwell.jpg")
+st.set_page_config(page_title="Crownwell CEX Tracking", layout="wide", page_icon="crownwell.jpg")
 
 st.markdown("""
 <style>
@@ -105,9 +105,10 @@ h1, h2, h3, h4 { color: var(--cw-gold) !important; }
 col_logo, col_title, col_nav = st.columns([1,5,4])
 with col_logo:
     try:
-        st.image("/Users/nguyenhuycuong/Downloads/crownwell.jpg", width=56)
+        st.image("crownwell.jpg", width=56)
     except Exception:
-        pass
+        # Fallback: show text logo if image fails
+        st.markdown("<div style='font-size: 24px; color: #d4af37; font-weight: bold;'>👑</div>", unsafe_allow_html=True)
 with col_title:
     st.markdown("<h1 class='cw-title'>Crownwell CEX Tracking</h1>", unsafe_allow_html=True)
 with col_nav:
