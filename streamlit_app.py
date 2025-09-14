@@ -4,11 +4,15 @@ from datetime import datetime, timezone, timedelta, date
 import json
 from pathlib import Path
 from typing import List, Optional, Dict, Any
+import warnings
 
 import streamlit as st
 import pandas as pd
 from binance.client import Client
 from binance.exceptions import BinanceAPIException
+
+# Suppress Streamlit secrets warning in production
+warnings.filterwarnings("ignore", message=".*secrets.*")
 
 # Reuse helpers from script if available
 try:
@@ -308,7 +312,13 @@ with st.expander("Security note", expanded=True):
     )
 
 def _get_api_keys() -> (Optional[str], Optional[str]):
-    # 1) Streamlit secrets
+    # 1) Environment variables (production priority)
+    ek = os.getenv("BINANCE_API_KEY")
+    es = os.getenv("BINANCE_API_SECRET")
+    if ek and es:
+        return ek, es
+    
+    # 2) Streamlit secrets (local development)
     try:
         sk = st.secrets.get("BINANCE_API_KEY", None)
         ss = st.secrets.get("BINANCE_API_SECRET", None)
@@ -316,12 +326,8 @@ def _get_api_keys() -> (Optional[str], Optional[str]):
             return str(sk), str(ss)
     except Exception:
         pass
-    # 2) Environment
-    ek = os.getenv("BINANCE_API_KEY")
-    es = os.getenv("BINANCE_API_SECRET")
-    if ek and es:
-        return ek, es
-    # 3) Session inputs
+    
+    # 3) Session inputs (fallback)
     k = st.session_state.get("__api_key__")
     s = st.session_state.get("__api_secret__")
     return k, s
