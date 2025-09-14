@@ -316,23 +316,41 @@ def _get_api_keys() -> (Optional[str], Optional[str]):
     ek = os.getenv("BINANCE_API_KEY")
     es = os.getenv("BINANCE_API_SECRET")
     if ek and es:
-        return ek, es
+        # Clean whitespace and validate format
+        ek = ek.strip()
+        es = es.strip()
+        if len(ek) > 10 and len(es) > 10:  # Basic validation
+            return ek, es
     
     # 2) Streamlit secrets (local development)
     try:
         sk = st.secrets.get("BINANCE_API_KEY", None)
         ss = st.secrets.get("BINANCE_API_SECRET", None)
         if sk and ss:
-            return str(sk), str(ss)
+            sk = str(sk).strip()
+            ss = str(ss).strip()
+            if len(sk) > 10 and len(ss) > 10:
+                return sk, ss
     except Exception:
         pass
     
     # 3) Session inputs (fallback)
     k = st.session_state.get("__api_key__")
     s = st.session_state.get("__api_secret__")
+    if k and s:
+        k = str(k).strip()
+        s = str(s).strip()
     return k, s
 
 api_key, api_secret = _get_api_keys()
+
+# Debug info for production
+if os.getenv("BINANCE_API_KEY"):
+    st.sidebar.success("✅ Environment variables detected")
+    st.sidebar.caption(f"API Key: {api_key[:8]}...{api_key[-4:] if api_key else 'None'}")
+else:
+    st.sidebar.warning("⚠️ Using fallback credentials")
+
 if not api_key or not api_secret:
     with st.sidebar:
         st.warning("Enter API credentials to continue")
