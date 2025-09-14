@@ -68,6 +68,30 @@ except Exception:
 
 st.set_page_config(page_title="Crownwell CEX Tracking", layout="wide", page_icon="crownwell.jpg")
 
+# Password protection
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    st.markdown("""
+    <div style="text-align: center; padding: 50px;">
+        <h1 style="color: #d4af37; margin-bottom: 30px;">👑 Crownwell CEX Tracking</h1>
+        <p style="color: #e9e9e9; font-size: 18px;">Enter password to access the dashboard</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        password = st.text_input("Password", type="password", placeholder="Enter access password")
+        if st.button("Access Dashboard", type="primary"):
+            if password == "crownwellportfolio":
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("❌ Incorrect password. Please try again.")
+    
+    st.stop()
+
 st.markdown("""
 <style>
 :root { --cw-gold: #d4af37; --cw-bg: #0b0b0b; --cw-panel: #121212; --cw-text: #e9e9e9; --cw-muted: #9aa0a6; }
@@ -102,7 +126,7 @@ h1, h2, h3, h4 { color: var(--cw-gold) !important; }
 </style>
 """, unsafe_allow_html=True)
 
-col_logo, col_title, col_nav = st.columns([1,5,4])
+col_logo, col_title, col_nav, col_logout = st.columns([1,4,3,1])
 with col_logo:
     try:
         st.image("crownwell.jpg", width=56)
@@ -115,6 +139,10 @@ with col_nav:
     st.markdown("<div class='top-nav'>", unsafe_allow_html=True)
     page = st.radio(" ", options=["Trades", "Balances"], index=0, horizontal=True, label_visibility="collapsed")
     st.markdown("</div>", unsafe_allow_html=True)
+with col_logout:
+    if st.button("🚪 Logout", help="Sign out"):
+        st.session_state.authenticated = False
+        st.rerun()
 
 def _maybe_pause_on_rate_limit(client: Client, near_threshold: int = 1100, sleep_seconds: float = 20.0) -> None:
     """Pause when Binance used weight in last minute approaches the limit.
