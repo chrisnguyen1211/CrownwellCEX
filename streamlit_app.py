@@ -312,29 +312,34 @@ with st.expander("Security note", expanded=True):
     )
 
 def _get_api_keys() -> (Optional[str], Optional[str]):
-    # 1) Environment variables (production priority)
+    # 1) Environment variables (production priority - ALWAYS check first)
     ek = os.getenv("BINANCE_API_KEY")
     es = os.getenv("BINANCE_API_SECRET")
+    
+    # If environment variables exist, use them regardless of secrets
     if ek and es:
-        # Clean whitespace and validate format
         ek = ek.strip()
         es = es.strip()
-        # Binance API keys are typically 64 characters
-        if len(ek) >= 60 and len(es) >= 60 and ek.isalnum() and es.isalnum():
+        # Skip placeholder values
+        if ek != "placeholder" and es != "placeholder" and len(ek) >= 60 and len(es) >= 60:
             return ek, es
+        elif ek == "placeholder" or es == "placeholder":
+            st.error("❌ Environment variables contain placeholder values. Please set real API credentials in Railway.")
+            return None, None
         else:
             st.error(f"❌ Invalid API key format. Key length: {len(ek)}, Secret length: {len(es)}")
             st.error(f"Key preview: {ek[:10]}...{ek[-10:] if len(ek) > 20 else ek}")
             st.error(f"Secret preview: {es[:10]}...{es[-10:] if len(es) > 20 else es}")
+            return None, None
     
-    # 2) Streamlit secrets (local development)
+    # 2) Streamlit secrets (local development only)
     try:
         sk = st.secrets.get("BINANCE_API_KEY", None)
         ss = st.secrets.get("BINANCE_API_SECRET", None)
         if sk and ss:
             sk = str(sk).strip()
             ss = str(ss).strip()
-            if len(sk) > 10 and len(ss) > 10:
+            if sk != "placeholder" and ss != "placeholder" and len(sk) > 10 and len(ss) > 10:
                 return sk, ss
     except Exception:
         pass
