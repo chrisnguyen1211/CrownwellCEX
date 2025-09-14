@@ -319,8 +319,13 @@ def _get_api_keys() -> (Optional[str], Optional[str]):
         # Clean whitespace and validate format
         ek = ek.strip()
         es = es.strip()
-        if len(ek) > 10 and len(es) > 10:  # Basic validation
+        # Binance API keys are typically 64 characters
+        if len(ek) >= 60 and len(es) >= 60 and ek.isalnum() and es.isalnum():
             return ek, es
+        else:
+            st.error(f"❌ Invalid API key format. Key length: {len(ek)}, Secret length: {len(es)}")
+            st.error(f"Key preview: {ek[:10]}...{ek[-10:] if len(ek) > 20 else ek}")
+            st.error(f"Secret preview: {es[:10]}...{es[-10:] if len(es) > 20 else es}")
     
     # 2) Streamlit secrets (local development)
     try:
